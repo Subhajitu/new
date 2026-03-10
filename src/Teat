@@ -1,0 +1,402 @@
+Below is the final quick implementation of your Application Support Hub that:
+	•	Uses multiple Excel master files
+	•	Has UI like your screenshot
+	•	Supports search
+	•	Shows ITAR / Non-ITAR apps
+	•	Opens SharePoint documents
+	•	Displays team roster
+	•	Requires no backend server
+	•	Updates automatically from Excel using a small script
+
+This is optimized for quick delivery to your manager.
+
+⸻
+
+1. Final Architecture
+
+Excel Master Files
+│
+├ master_apps.xlsx
+├ links.xlsx
+├ roster.xlsx
+│
+↓
+Python Script (generate_data.py)
+↓
+JSON Data Files
+│
+├ applications.json
+├ roster.json
+│
+↓
+HTML Dashboard
+│
+dashboard.html
+style.css
+script.js
+
+Just open dashboard.html in browser.
+
+⸻
+
+2. Final Folder Structure
+
+Create this folder:
+
+support-hub
+│
+├ dashboard.html
+├ style.css
+├ script.js
+│
+├ data
+│   ├ applications.json
+│   └ roster.json
+│
+├ excel
+│   ├ master_apps.xlsx
+│   ├ links.xlsx
+│   └ roster.xlsx
+│
+└ generate_data.py
+
+
+⸻
+
+3. Dashboard HTML
+
+:::writing{variant=“standard” id=“hub_final_html”}
+
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>ABC Aero System • Support Hub</title>
+<link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<div class="header">
+
+<h2>ABC Aero System • Support Hub</h2>
+
+<input type="text" id="searchBox" placeholder="Search applications, SME, server...">
+
+</div>
+
+<div class="main">
+
+<div class="left">
+
+<h3>SharePoint & Reference Links</h3>
+
+<a class="linkCard" href="#">ITAR – Infosys SharePoint</a>
+<a class="linkCard" href="#">Client SharePoint (ABC Aero System)</a>
+<a class="linkCard" href="#">Runbooks / KB Repository</a>
+<a class="linkCard" href="#">Escalation Matrix</a>
+
+<h3>Team Roster</h3>
+
+<div id="rosterPanel"></div>
+
+</div>
+
+<div class="right">
+
+<h3>ITAR Applications</h3>
+
+<table id="itarTable">
+
+<tr>
+<th>Application</th>
+<th>Technology</th>
+<th>SME</th>
+<th>Criticality</th>
+<th>AUD</th>
+</tr>
+
+</table>
+
+<h3>Non-ITAR Applications</h3>
+
+<table id="nonItarTable">
+
+<tr>
+<th>Application</th>
+<th>Technology</th>
+<th>SME</th>
+<th>Criticality</th>
+<th>AUD</th>
+</tr>
+
+</table>
+
+</div>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
+
+:::
+
+⸻
+
+4. CSS Design (Matches Screenshot Style)
+
+:::writing{variant=“standard” id=“hub_final_css”}
+
+body{
+font-family: Arial;
+margin:0;
+background:#f4f7fb;
+}
+
+.header{
+background:#1f4f7a;
+color:white;
+padding:15px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.header input{
+padding:7px;
+border-radius:5px;
+border:none;
+width:260px;
+}
+
+.main{
+display:flex;
+gap:20px;
+padding:20px;
+}
+
+.left{
+width:30%;
+background:white;
+padding:15px;
+border-radius:6px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+.right{
+width:70%;
+background:white;
+padding:15px;
+border-radius:6px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+.linkCard{
+display:block;
+padding:10px;
+margin-bottom:10px;
+border:1px solid #ddd;
+border-radius:5px;
+text-decoration:none;
+color:#1f4f7a;
+background:#f9fbff;
+}
+
+.linkCard:hover{
+background:#e8f1ff;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:10px;
+}
+
+th{
+background:#1f4f7a;
+color:white;
+padding:10px;
+}
+
+td{
+border:1px solid #ddd;
+padding:8px;
+}
+
+.rosterCard{
+border:1px solid #ddd;
+padding:8px;
+margin-bottom:5px;
+border-radius:4px;
+background:#f9fbff;
+}
+
+:::
+
+⸻
+
+5. JavaScript Logic
+
+:::writing{variant=“standard” id=“hub_final_js”}
+
+let applications=[]
+let roster=[]
+
+async function loadData(){
+
+applications = await fetch("data/applications.json").then(r=>r.json())
+roster = await fetch("data/roster.json").then(r=>r.json())
+
+renderApps(applications)
+renderRoster()
+
+}
+
+function renderApps(data){
+
+let itarTable=document.getElementById("itarTable")
+let nonTable=document.getElementById("nonItarTable")
+
+itarTable.innerHTML=itarTable.rows[0].outerHTML
+nonTable.innerHTML=nonTable.rows[0].outerHTML
+
+data.forEach(app=>{
+
+let row=`<tr>
+<td>${app.application}</td>
+<td>${app.technology}</td>
+<td>${app.sme}</td>
+<td>${app.criticality}</td>
+<td><a href="${app.aud}" target="_blank">Open</a></td>
+</tr>`
+
+if(app.type==="ITAR"){
+itarTable.innerHTML+=row
+}else{
+nonTable.innerHTML+=row
+}
+
+})
+
+}
+
+function renderRoster(){
+
+let panel=document.getElementById("rosterPanel")
+
+roster.forEach(r=>{
+panel.innerHTML+=`<div class="rosterCard">
+<b>${r.name}</b><br>
+Shift: ${r.shift}
+</div>`
+})
+
+}
+
+document.getElementById("searchBox").addEventListener("keyup",function(){
+
+let text=this.value.toLowerCase()
+
+let filtered=applications.filter(a =>
+a.application.toLowerCase().includes(text) ||
+a.sme.toLowerCase().includes(text) ||
+a.technology.toLowerCase().includes(text)
+)
+
+renderApps(filtered)
+
+})
+
+loadData()
+
+:::
+
+⸻
+
+6. Python Script (Excel → JSON)
+
+:::writing{variant=“standard” id=“hub_final_py”}
+
+import pandas as pd
+import json
+
+apps=pd.read_excel("excel/master_apps.xlsx")
+links=pd.read_excel("excel/links.xlsx")
+
+data=apps.merge(links,on="Application Name")
+
+applications=[]
+
+for _,r in data.iterrows():
+
+applications.append({
+
+"application":r["Application Name"],
+"type":r["ITAR / Non-ITAR"],
+"technology":r["Technology"],
+"sme":r["Primary spdemo SME"],
+"criticality":r["Business Criticality"],
+"aud":r["AUD"]
+
+})
+
+with open("data/applications.json","w") as f:
+json.dump(applications,f)
+
+roster=pd.read_excel("excel/roster.xlsx")
+
+rosterData=[]
+
+for _,r in roster.iterrows():
+
+rosterData.append({
+"name":r["Name"],
+"shift":r["Shift"]
+})
+
+with open("data/roster.json","w") as f:
+json.dump(rosterData,f)
+
+print("Data generated")
+
+:::
+
+Run:
+
+python generate_data.py
+
+
+⸻
+
+7. Launch Portal
+
+Just open:
+
+dashboard.html
+
+Your browser will show the portal.
+
+⸻
+
+Final Result
+
+Your portal will contain:
+	•	Top header + search
+	•	SharePoint reference panel
+	•	ITAR applications table
+	•	Non-ITAR applications table
+	•	Open AUD links
+	•	Team roster panel
+	•	Search across apps / SME / technology
+
+Similar to the screenshot you showed.
+
+⸻
+
+If you’d like, I can also show you one upgrade that makes this portal much more powerful:
+
+A live Excel dashboard (no Python script needed) where the HTML reads Excel directly.
